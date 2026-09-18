@@ -8,6 +8,7 @@ import {code128Svg} from './barcode.js';
 import {createSaleCart,createSupplier,supplierPayment,findProduct} from './phase6.js';
 import {scanBarcode} from './scanner.js';
 import {initResponsiveLayout} from './uiResponsive.js';
+const DEFAULT_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbxDNLILTwTC0VrT5U2dt2PIwfBjA8IkhXgXypuYvMFDx5qsAao4aOAPGMyhSCQkpJj5/exec';
 const $ = id => document.getElementById(id);
 const money = n => `৳${Number(n||0).toLocaleString('en-BD',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
@@ -165,8 +166,34 @@ function showTab(tab){
   document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
 }
 async function loginUI(){
+  if(!getBackendUrl()) setBackendUrl(DEFAULT_BACKEND_URL);
+  $('loginBackendUrl').value=getBackendUrl()||'';
+  if(getBackendUrl()) setBackendStatus('Backend URL সংরক্ষিত', 'ok');
   if(getToken()){ $('loginScreen').classList.remove('show'); return; }
   $('loginScreen').classList.add('show');
+}
+function setBackendStatus(msg,type=''){
+  const el=$('backendStatus');
+  if(!el)return;
+  el.textContent=msg;
+  el.className=`backend-status ${type}`.trim();
+}
+async function saveAndTestBackend(){
+  const url=$('loginBackendUrl').value.trim();
+  if(!url)return setBackendStatus('Backend URL দিন','error');
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^\s]+\/exec(?:\?.*)?$/i.test(url)){
+    return setBackendStatus('সঠিক Apps Script /exec URL দিন','error');
+  }
+  try{
+    setBackendStatus('Backend পরীক্ষা হচ্ছে…');
+    setBackendUrl(url);
+    const health=await api('health');
+    setBackendStatus(`Backend Online • v${health.version||'2.0.0'}`,'ok');
+    toast('Backend URL সংরক্ষণ ও পরীক্ষা সফল');
+  }catch(e){
+    setBackendStatus(e.message||'Backend সংযোগ ব্যর্থ','error');
+    toast(e.message||'Backend সংযোগ ব্যর্থ','error');
+  }
 }
 async function doLogin(){
   try{
@@ -202,16 +229,18 @@ function initEvents(){
   $('dueCustomer').onchange=()=>{const c=state.customers.find(x=>x.id===$('dueCustomer').value);$('dueCurrent').value=c?money(c.currentDue):''};
   $('payCustomer').onchange=()=>{const c=state.customers.find(x=>x.id===$('payCustomer').value);$('payCurrent').value=c?money(c.currentDue):''};
   $('saleCustomer').onchange=()=>{const c=state.customers.find(x=>x.id===$('saleCustomer').value);$('salePrevious').value=c?money(c.currentDue):''};
-  $('backendForm').onsubmit=e=>{e.preventDefault();setBackendUrl($('backendUrl').value);toast('Backend URL সংরক্ষিত')};
+  $('backendForm').onsubmit=e=>{e.preventDefault();setBackendUrl($('backendUrl').value);$('loginBackendUrl').value=getBackendUrl();toast('Backend URL সংরক্ষিত')};
+  $('saveBackendBtn').onclick=saveAndTestBackend;
   $('logoutBtn').onclick=()=>{clearToken();loginUI()};
   document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
   $('username').addEventListener('keydown',e=>{if(e.key==='Enter')$('password').focus()});
+  $('loginBackendUrl').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveAndTestBackend()}});
   $('password').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
   $('loginForm').onsubmit=e=>{e.preventDefault();doLogin()};
 }
 async function baseBoot(){
   initResponsiveLayout();
-  $('backendUrl').value=getBackendUrl();
+  $('backendUrl').value=getBackendUrl()||DEFAULT_BACKEND_URL;
   setNet(); initEvents(); await refreshCustomers(); await populateCustomerSelects(); await updateSync(); loginUI();
   startAutoSync(async()=>{await updateSync()});
 }
