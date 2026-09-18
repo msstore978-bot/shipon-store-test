@@ -32,7 +32,7 @@ async function refreshCustomers(){
 function filtered(){
   const q=state.search.trim().toLowerCase();
   return !q?state.customers:state.customers.filter(c =>
-    [c.name,c.shop,c.mobile,c.whatsapp].some(v=>String(v||'').toLowerCase().includes(q)));
+    [c.name,c.shop,c.shopName,c.mobile,c.phone,c.whatsapp].some(v=>String(v||'').toLowerCase().includes(q)));
 }
 function renderCustomers(){
   $('customerList').innerHTML=filtered().map(c=>`
@@ -88,8 +88,8 @@ async function addCustomer(form){
     imageData=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(imageFile)});
   }
   const id=uuid(), now=nowIso();
-  const c={id,name:fd.get('name').trim(),shop:fd.get('shop').trim(),mobile:fd.get('mobile').trim(),
-    whatsapp:fd.get('whatsapp').trim(),address:fd.get('address').trim(),nid:fd.get('nid').trim(),
+  const c={id,customerId:id,name:fd.get('name').trim(),shop:fd.get('shop').trim(),shopName:fd.get('shop').trim(),mobile:fd.get('mobile').trim(),phone:fd.get('mobile').trim(),
+    whatsapp:fd.get('whatsapp').trim(),address:fd.get('address').trim(),nid:fd.get('nid').trim(),profilePic:'',
     note:fd.get('note').trim(),openingDue:Number(fd.get('openingDue')||0),currentDue:Number(fd.get('openingDue')||0),
     imageData,createdAt:now,updatedAt:now,version:1,deviceId:deviceId()};
   await put('customers',c);
@@ -97,7 +97,6 @@ async function addCustomer(form){
     const tx={id:uuid(),customerId:id,type:'Opening Due',date:fd.get('entryDate')||now.slice(0,10),
       bill:c.openingDue,payment:0,remainingDue:c.openingDue,reference:'OPENING-DUE',createdAt:now,updatedAt:now};
     await put('customer_transactions',tx);
-    await enqueue('customer_transaction','create',tx);
     const due={id:uuid(),customerId:id,amount:c.openingDue,date:tx.date,reference:'OPENING-DUE',createdAt:now,updatedAt:now};
     await put('due_add',due); await enqueue('due','create',due);
   }
@@ -116,7 +115,7 @@ async function addDue(){
   const tx={id:uuid(),customerId:c.id,type:'Due',date:d.date,bill:amount,payment:0,
     remainingDue:c.currentDue,reference:d.reference,method:'Due',note:d.note,createdAt:now,updatedAt:now};
   await put('customers',c);await put('due_add',d);await put('customer_transactions',tx);
-  await enqueue('customer','update',c);await enqueue('due','create',d);await enqueue('customer_transaction','create',tx);
+  await enqueue('due','create',d);
   $('addDueForm').reset();populateCustomerSelects();await refreshCustomers();toast('বাকি যোগ হয়েছে');
 }
 
@@ -132,7 +131,7 @@ async function payDue(){
     remainingDue:remaining,reference:'PAY-'+p.id.slice(0,8),method:p.method,note:p.note,
     discount,createdAt:now,updatedAt:now};
   await put('customers',c);await put('payments',p);await put('customer_transactions',tx);
-  await enqueue('customer','update',c);await enqueue('payment','create',p);await enqueue('customer_transaction','create',tx);
+  await enqueue('payment','create',p);
   $('payDueForm').reset();populateCustomerSelects();await refreshCustomers();toast('পরিশোধ সংরক্ষিত হয়েছে');
 }
 
@@ -150,7 +149,7 @@ async function createSale(){
   const tx={id:uuid(),customerId:c.id,type:'Sale',date:s.date,bill,payment:s.paidAmount,
     remainingDue:newDue,reference:s.invoice,method:s.paymentMethod,note:s.note,createdAt:now,updatedAt:now};
   await put('sales',s);await put('customers',c);await put('customer_transactions',tx);
-  await enqueue('sale','create',s);await enqueue('customer','update',c);await enqueue('customer_transaction','create',tx);
+  await enqueue('sale','create',s);
   $('saleForm').reset();populateCustomerSelects();await refreshCustomers();toast('বিক্রি সংরক্ষিত হয়েছে');
 }
 function deviceId(){let x=localStorage.getItem('shipon_device_id');if(!x){x=uuid();localStorage.setItem('shipon_device_id',x)}return x}
@@ -233,4 +232,4 @@ async function phase6Init(){
  $('supplierPayForm')?.addEventListener('submit',async e=>{e.preventDefault();try{await supplierPayment({supplierId:$('supplierPayId').value,paidAmount:$('supplierPayAmount').value,discount:$('supplierPayDiscount').value,method:$('supplierPayMethod').value,date:$('supplierPayDate').value,note:$('supplierPayNote').value});e.target.reset();$('supplierPayModal').classList.remove('show');await renderSuppliers();toast('Supplier payment সংরক্ষিত')}catch(x){toast(x.message,'error')}});
  await renderSuppliers();
 }
-boot().then(phase6Init);
+baseBoot().then(phase6Init).catch(e=>toast(e.message||'App initialization failed','error'));

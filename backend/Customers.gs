@@ -104,9 +104,12 @@ var Customers = {
 
 function normalizeCustomer_(r) {
   return {
+    id:String(r.Cust_ID||""),
     customerId:String(r.Cust_ID||""),
     name:String(r.Name||""),
+    shop:String(r.Shop_Name||""),
     shopName:String(r.Shop_Name||""),
+    mobile:String(r.Phone||""),
     phone:String(r.Phone||""),
     whatsapp:String(r.WhatsApp||""),
     address:String(r.Address||""),
@@ -115,6 +118,7 @@ function normalizeCustomer_(r) {
     date:r.Date instanceof Date ? r.Date.toISOString() : String(r.Date||""),
     currentDue:Number(r.Current_Due||0),
     profilePic:String(r.Profile_Pic||""),
+    imageData:"",
     note:String(r.Note||"")
   };
 }
