@@ -3,7 +3,8 @@
 <meta name="theme-color" content="#101827"><link rel="manifest" href="/manifest.webmanifest"><title>Shipon Store</title><link rel="stylesheet" href="/src/styles.css"></head>
 <body>
 <div id="loginScreen" class="login show"><div class="login-card"><h1>Shipon Store</h1><p>Offline Business Management</p>
-<form id="loginForm"><input id="username" placeholder="Username" autocomplete="username" required><input id="password" type="password" placeholder="Password" autocomplete="current-password" required><button class="primary">Login</button></form></div></div>
+<div class="backend-login-box"><label for="loginBackendUrl">Apps Script Backend URL</label><input id="loginBackendUrl" type="url" inputmode="url" autocomplete="url" placeholder="https://script.google.com/macros/s/.../exec"><div class="backend-login-actions"><button id="saveBackendBtn" type="button" class="secondary">Save & Test Backend</button><span id="backendStatus" class="backend-status">Backend URL সেট করা হয়নি</span></div></div>
+<form id="loginForm"><input id="username" placeholder="Username" autocomplete="username" required><input id="password" type="password" placeholder="Password" autocomplete="current-password" required><button id="loginBtn" class="primary">Login</button></form></div></div>
 <div class="app">
 <aside class="sidebar"><div class="brand">Shipon Store<small>Offline Business App</small></div><nav class="nav">
 <button data-tab="dashboard" class="active">Dashboard</button><button data-tab="customers">Customers</button><button data-tab="due">Due</button><button data-tab="sales">Sales</button><button data-tab="products">Products</button><button data-tab="purchases">Purchase</button><button data-tab="suppliers">Supplier</button><button data-tab="profit">Profit</button><button data-tab="sync">Sync</button><button data-tab="settings">Settings</button></nav></aside>
