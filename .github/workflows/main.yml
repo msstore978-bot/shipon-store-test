@@ -1,4 +1,4 @@
-name: Shipon Store APK Build
+name: Build Android APK
 
 on:
   workflow_dispatch:
@@ -12,12 +12,12 @@ permissions:
 
 jobs:
   build-android:
-    name: Build Android APK
+    name: Build Shipon Store Android APK
     runs-on: ubuntu-latest
 
     steps:
 
-      # 1. Checkout repository
+      # 1. Checkout
       - name: Checkout source code
         uses: actions/checkout@v4
 
@@ -25,8 +25,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: '24'
 
       # 3. Setup Java
       - name: Setup Java
@@ -35,43 +34,51 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      # 4. Install dependencies
+      # 4. Check project files
+      - name: Check project
+        run: |
+          echo "Node version:"
+          node --version
+          echo "NPM version:"
+          npm --version
+          echo "Project files:"
+          ls -la
+
+      # 5. Install dependencies
       - name: Install npm dependencies
         run: npm install
 
-      # 5. Build web application
+      # 6. Build web application
       - name: Build web application
         run: npm run build
 
-      # 6. Create Android project
+      # 7. Add Android platform
       - name: Add Android platform
         run: npx cap add android
 
-      # 7. Sync Capacitor
-      - name: Sync Capacitor Android
+      # 8. Sync Capacitor
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      # 8. Make Gradle executable
+      # 9. Make Gradle executable
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
-      # 9. Build Debug APK
+      # 10. Build Debug APK
       - name: Build Debug APK
         working-directory: android
         run: ./gradlew assembleDebug
 
-      # 10. Upload APK
-      - name: Upload APK artifact
+      # 11. Check APK
+      - name: Check APK
+        run: |
+          echo "APK files:"
+          ls -lh android/app/build/outputs/apk/debug/
+
+      # 12. Upload APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: shipon-store-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-
-      # 11. Upload mapping/build information if available
-      - name: Build summary
-        run: |
-          echo "======================================"
-          echo "Shipon Store APK build completed"
-          echo "======================================"
-          ls -lh android/app/build/outputs/apk/debug/
